@@ -1,0 +1,39 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&display=swap"><title>Accounts dashboard</title><style>
+:root{--bg:#eef2f6;--surf:#fff;--ink:#14202e;--mut:#5d6b7c;--line:#d5dde6;--acc:#1f5fbf;--pos:#12805c;--neg:#b8392f;--warn:#a96a00;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1620;--surf:#18222f;--ink:#e6edf5;--mut:#93a2b5;--line:#2a3748;--acc:#6aa3f0;--pos:#46c29a;--neg:#ef7d73;--warn:#e0a53a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1620;--surf:#18222f;--ink:#e6edf5;--mut:#93a2b5;--line:#2a3748;--acc:#6aa3f0;--pos:#46c29a;--neg:#ef7d73;--warn:#e0a53a;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "IBM Plex Sans",system-ui,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:20px 16px 40px}h1{font-size:24px;margin:0 0 2px}p.s{margin:0 0 18px;color:var(--mut)}
+.k{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.c{background:var(--surf);border:1px solid var(--line);border-radius:10px;padding:14px}.k .c b{display:block;font-size:22px;font-variant-numeric:tabular-nums}.k .c span{color:var(--mut);font-size:13px}
+h2{font-size:16px;margin:0 0 10px}.g{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}@media(max-width:700px){.g{grid-template-columns:1fr}}
+.bar{display:grid;grid-template-columns:110px 1fr 90px;gap:8px;align-items:center;margin:6px 0;font-size:14px}.bar i{display:block;height:12px;border-radius:6px;background:var(--acc)}.bar em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}input,select,button{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}
+button{background:var(--acc);color:#fff;border-color:var(--acc);cursor:pointer}button.x{background:none;color:var(--neg);border-color:var(--line);padding:4px 8px}:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.w{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}.pos{color:var(--pos)}.neg{color:var(--neg)}
+</style></head><body><main>
+<h1>Accounts dashboard</h1><p class="s">Record money in and out, and see balances by account.</p>
+<div class="k" id="k"></div>
+<div class="g"><div class="c"><h2>Balance by account</h2><div id="b"></div></div>
+<div class="c"><h2>Add transaction</h2><form id="f">
+<input type="date" id="d" required><input id="a" placeholder="Account (e.g. Cash, Bank)" required list="al"><datalist id="al"></datalist>
+<select id="t"><option value="in">Money in</option><option value="out">Money out</option></select>
+<input type="number" id="m" placeholder="Amount" min="0" step="0.01" required><input id="n" placeholder="Note"><button>Add transaction</button></form></div></div>
+<div class="c"><h2>Transactions</h2><select id="fl" aria-label="Filter by account"></select><div class="w"><table><thead><tr><th>Date</th><th>Account</th><th>Note</th><th class="n">Amount</th><th></th></tr></thead><tbody id="r"></tbody></table></div></div>
+</main><script>
+var K="accts-v1",T=[];try{T=JSON.parse(localStorage.getItem(K)||"null")||[]}catch(e){}
+if(!T.length)T=[{id:1,date:"2026-11-01",account:"Bank",type:"in",amount:50000,note:"Opening balance"},{id:2,date:"2026-11-03",account:"Cash",type:"in",amount:8000,note:"Counter sales"},{id:3,date:"2026-11-05",account:"Bank",type:"out",amount:12500,note:"Supplier payment"}];
+var $=function(i){return document.getElementById(i)},fmt=function(v){return v.toLocaleString(undefined,{maximumFractionDigits:2})},sg=function(t){return t.type=="in"?t.amount:-t.amount};
+function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}
+function save(){try{localStorage.setItem(K,JSON.stringify(T))}catch(e){}}
+function draw(){var ac={},i=0,o=0;T.forEach(function(t){ac[t.account]=(ac[t.account]||0)+sg(t);t.type=="in"?i+=t.amount:o+=t.amount});
+var names=Object.keys(ac),max=Math.max.apply(null,names.map(function(n){return Math.abs(ac[n])}).concat([1]));
+$("k").innerHTML=[["Money in",fmt(i),"pos"],["Money out",fmt(o),"neg"],["Net balance",fmt(i-o),i-o<0?"neg":""],["Transactions",T.length,""]].map(function(x){return '<div class="c"><span>'+x[0]+'</span><b class="'+x[2]+'">'+x[1]+'</b></div>'}).join("");
+$("b").innerHTML=names.map(function(n){return '<div class="bar"><span>'+esc(n)+'</span><div><i style="width:'+Math.abs(ac[n])/max*100+'%;background:var(--'+(ac[n]<0?"neg":"acc")+')"></i></div><em>'+fmt(ac[n])+'</em></div>'}).join("")||"No accounts yet.";
+$("al").innerHTML=names.map(function(n){return '<option value="'+esc(n)+'">'}).join("");
+var cur=$("fl").value;$("fl").innerHTML='<option value="">All accounts</option>'+names.map(function(n){return '<option>'+esc(n)+'</option>'}).join("");$("fl").value=cur;
+$("r").innerHTML=T.filter(function(t){return!$("fl").value||t.account==$("fl").value}).sort(function(a,b){return a.date<b.date?1:-1}).map(function(t){return '<tr><td>'+t.date+'</td><td>'+esc(t.account)+'</td><td>'+esc(t.note)+'</td><td class="n '+(t.type=="in"?"pos":"neg")+'">'+(t.type=="in"?"+":"-")+fmt(t.amount)+'</td><td><button class="x" data-i="'+t.id+'" aria-label="Delete">Delete</button></td></tr>'}).join("")}
+$("d").valueAsDate=new Date();
+$("f").onsubmit=function(e){e.preventDefault();T.push({id:Date.now(),date:$("d").value,account:$("a").value.trim(),type:$("t").value,amount:+$("m").value,note:$("n").value});$("m").value=$("n").value="";save();draw()};
+$("r").onclick=function(e){var i=e.target.getAttribute("data-i");if(i){T=T.filter(function(t){return t.id!=i});save();draw()}};$("fl").onchange=draw;draw();
+</script></body></html>
