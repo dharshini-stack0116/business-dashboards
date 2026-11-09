@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&display=swap"><title>Estimates dashboard</title><style>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&display=swap"><title>Cryol Accounts - Estimates</title><style>
 :root{--bg:#eef2f6;--surf:#fff;--ink:#14202e;--mut:#5d6b7c;--line:#d5dde6;--acc:#1f5fbf;--pos:#12805c;--neg:#b8392f;--warn:#a96a00;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1620;--surf:#18222f;--ink:#e6edf5;--mut:#93a2b5;--line:#2a3748;--acc:#6aa3f0;--pos:#46c29a;--neg:#ef7d73;--warn:#e0a53a;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#0f1620;--surf:#18222f;--ink:#e6edf5;--mut:#93a2b5;--line:#2a3748;--acc:#6aa3f0;--pos:#46c29a;--neg:#ef7d73;--warn:#e0a53a;color-scheme:dark}
@@ -11,9 +11,9 @@ h2{font-size:16px;margin:0 0 10px}.g{display:grid;grid-template-columns:1fr 1fr;
 form{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}input,select,button{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}
 button{background:var(--acc);color:#fff;border-color:var(--acc);cursor:pointer}button.x{background:none;color:var(--neg);border-color:var(--line);padding:4px 8px}:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .w{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}.pos{color:var(--pos)}.neg{color:var(--neg)}
-</style></head><body><main>
+.tb{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}button.o{background:var(--surf);color:var(--ink);border-color:var(--line)}</style><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#1f5fbf"><link rel="icon" href="icon-192.png"></head><body><main>
 <h1>Estimates dashboard</h1><p class="s">All estimates in one place, with status and value at a glance.</p>
-<div class="k" id="k"></div>
+<div class="tb"><button class="o" id="xj">Export backup</button><button class="o" id="xc">Export CSV</button><button class="o" id="im">Import backup</button><input type="file" id="fi" accept=".json,application/json" hidden></div><div class="k" id="k"></div>
 <div class="g"><div class="c"><h2>Value by status</h2><div id="b"></div></div>
 <div class="c"><h2>Add estimate</h2><form id="f">
 <input id="c" placeholder="Client" required><input id="i" placeholder="Item or work" required>
@@ -35,4 +35,18 @@ $("t").innerHTML=E.map(function(e,n){return '<tr><td>EST-'+String(n+1).padStart(
 $("f").onsubmit=function(ev){ev.preventDefault();E.push({id:Date.now(),c:$("c").value.trim(),i:$("i").value.trim(),q:+$("q").value,r:+$("r").value,s:$("s").value});$("i").value=$("r").value="";save();draw()};
 $("t").onclick=function(ev){var i=ev.target.getAttribute("data-i");if(i){E=E.filter(function(e){return e.id!=i});save();draw()}};
 $("t").onchange=function(ev){var i=ev.target.getAttribute("data-s");if(i){E.forEach(function(e){if(e.id==i)e.s=ev.target.value});save();draw()}};draw();
-</script></body></html>
+
+function dl(n,t,m){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:m}));a.download=n;a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000)}
+function csv(h,rows){var q=function(v){v=String(v==null?"":v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};return [h].concat(rows).map(function(r){return r.map(q).join(",")}).join("\n")}
+var today=new Date().toISOString().slice(0,10);
+function bad(){alert("Import failed: this is not a valid backup file for this dashboard.")}
+$("xj").onclick=function(){dl(NAME+"-backup-"+today+".json",JSON.stringify(DATA(),null,1),"application/json")};
+$("xc").onclick=function(){dl(NAME+"-"+today+".csv",CSVOUT(),"text/csv")};
+$("im").onclick=function(){$("fi").click()};
+$("fi").onchange=function(){var f=this.files[0],inp=this;if(!f)return;var r=new FileReader();r.onload=function(){var d;try{d=JSON.parse(r.result)}catch(e){return bad()}d=CLEAN(d);if(!d)return bad();if(confirm("Replace current data with "+d.length+" records from this file?")){APPLY(d);save();draw()}inp.value=""};r.readAsText(f)};
+
+var NAME="estimates";function DATA(){return E}
+function CSVOUT(){return csv(["No.","Client","Item","Qty","Rate","Total","Status"],E.map(function(e,n){return ["EST-"+String(n+1).padStart(3,"0"),e.c,e.i,e.q,e.r,e.q*e.r,e.s]}))}
+function CLEAN(d){if(!Array.isArray(d))return null;var o=[];for(var i=0;i<d.length;i++){var e=d[i];if(!e||typeof e.c!="string"||typeof e.i!="string"||!isFinite(+e.q)||!isFinite(+e.r)||S.indexOf(e.s)<0)return null;o.push({id:Date.now()+i,c:e.c,i:e.i,q:+e.q,r:+e.r,s:e.s})}return o}
+function APPLY(d){E=d}
+</script><script>if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(function(){})</script></body></html>

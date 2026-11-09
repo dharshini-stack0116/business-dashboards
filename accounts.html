@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&display=swap"><title>Accounts dashboard</title><style>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&display=swap"><title>Cryol Accounts - Accounts</title><style>
 :root{--bg:#eef2f6;--surf:#fff;--ink:#14202e;--mut:#5d6b7c;--line:#d5dde6;--acc:#1f5fbf;--pos:#12805c;--neg:#b8392f;--warn:#a96a00;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1620;--surf:#18222f;--ink:#e6edf5;--mut:#93a2b5;--line:#2a3748;--acc:#6aa3f0;--pos:#46c29a;--neg:#ef7d73;--warn:#e0a53a;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#0f1620;--surf:#18222f;--ink:#e6edf5;--mut:#93a2b5;--line:#2a3748;--acc:#6aa3f0;--pos:#46c29a;--neg:#ef7d73;--warn:#e0a53a;color-scheme:dark}
@@ -11,9 +11,9 @@ h2{font-size:16px;margin:0 0 10px}.g{display:grid;grid-template-columns:1fr 1fr;
 form{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}input,select,button{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}
 button{background:var(--acc);color:#fff;border-color:var(--acc);cursor:pointer}button.x{background:none;color:var(--neg);border-color:var(--line);padding:4px 8px}:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .w{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}.pos{color:var(--pos)}.neg{color:var(--neg)}
-</style></head><body><main>
+.tb{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}button.o{background:var(--surf);color:var(--ink);border-color:var(--line)}</style><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#1f5fbf"><link rel="icon" href="icon-192.png"></head><body><main>
 <h1>Accounts dashboard</h1><p class="s">Record money in and out, and see balances by account.</p>
-<div class="k" id="k"></div>
+<div class="tb"><button class="o" id="xj">Export backup</button><button class="o" id="xc">Export CSV</button><button class="o" id="im">Import backup</button><input type="file" id="fi" accept=".json,application/json" hidden></div><div class="k" id="k"></div>
 <div class="g"><div class="c"><h2>Balance by account</h2><div id="b"></div></div>
 <div class="c"><h2>Add transaction</h2><form id="f">
 <input type="date" id="d" required><input id="a" placeholder="Account (e.g. Cash, Bank)" required list="al"><datalist id="al"></datalist>
@@ -36,4 +36,18 @@ $("r").innerHTML=T.filter(function(t){return!$("fl").value||t.account==$("fl").v
 $("d").valueAsDate=new Date();
 $("f").onsubmit=function(e){e.preventDefault();T.push({id:Date.now(),date:$("d").value,account:$("a").value.trim(),type:$("t").value,amount:+$("m").value,note:$("n").value});$("m").value=$("n").value="";save();draw()};
 $("r").onclick=function(e){var i=e.target.getAttribute("data-i");if(i){T=T.filter(function(t){return t.id!=i});save();draw()}};$("fl").onchange=draw;draw();
-</script></body></html>
+
+function dl(n,t,m){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:m}));a.download=n;a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000)}
+function csv(h,rows){var q=function(v){v=String(v==null?"":v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};return [h].concat(rows).map(function(r){return r.map(q).join(",")}).join("\n")}
+var today=new Date().toISOString().slice(0,10);
+function bad(){alert("Import failed: this is not a valid backup file for this dashboard.")}
+$("xj").onclick=function(){dl(NAME+"-backup-"+today+".json",JSON.stringify(DATA(),null,1),"application/json")};
+$("xc").onclick=function(){dl(NAME+"-"+today+".csv",CSVOUT(),"text/csv")};
+$("im").onclick=function(){$("fi").click()};
+$("fi").onchange=function(){var f=this.files[0],inp=this;if(!f)return;var r=new FileReader();r.onload=function(){var d;try{d=JSON.parse(r.result)}catch(e){return bad()}d=CLEAN(d);if(!d)return bad();if(confirm("Replace current data with "+d.length+" records from this file?")){APPLY(d);save();draw()}inp.value=""};r.readAsText(f)};
+
+var NAME="accounts";function DATA(){return T}
+function CSVOUT(){return csv(["Date","Account","Type","Amount","Note"],T.map(function(t){return [t.date,t.account,t.type=="in"?"Money in":"Money out",t.amount,t.note]}))}
+function CLEAN(d){if(!Array.isArray(d))return null;var o=[];for(var i=0;i<d.length;i++){var t=d[i];if(!t||typeof t.account!="string"||!isFinite(+t.amount)||(t.type!="in"&&t.type!="out"))return null;o.push({id:Date.now()+i,date:String(t.date||today),account:t.account,type:t.type,amount:+t.amount,note:String(t.note||"")})}return o}
+function APPLY(d){T=d}
+</script><script>if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(function(){})</script></body></html>
