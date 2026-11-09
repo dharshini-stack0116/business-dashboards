@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&display=swap"><title>Cryol Accounts - Accounts</title><style>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Cryol Accounts - Accounts</title><style>
 :root{--bg:#eef2f6;--surf:#fff;--ink:#14202e;--mut:#5d6b7c;--line:#d5dde6;--acc:#1f5fbf;--pos:#12805c;--neg:#b8392f;--warn:#a96a00;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1620;--surf:#18222f;--ink:#e6edf5;--mut:#93a2b5;--line:#2a3748;--acc:#6aa3f0;--pos:#46c29a;--neg:#ef7d73;--warn:#e0a53a;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#0f1620;--surf:#18222f;--ink:#e6edf5;--mut:#93a2b5;--line:#2a3748;--acc:#6aa3f0;--pos:#46c29a;--neg:#ef7d73;--warn:#e0a53a;color-scheme:dark}
@@ -20,12 +20,11 @@ button{background:var(--acc);color:#fff;border-color:var(--acc);cursor:pointer}b
 <select id="t"><option value="in">Money in</option><option value="out">Money out</option></select>
 <input type="number" id="m" placeholder="Amount" min="0" step="0.01" required><input id="n" placeholder="Note"><button>Add transaction</button></form></div></div>
 <div class="c"><h2>Transactions</h2><select id="fl" aria-label="Filter by account"></select><div class="w"><table><thead><tr><th>Date</th><th>Account</th><th>Note</th><th class="n">Amount</th><th></th></tr></thead><tbody id="r"></tbody></table></div></div>
-</main><script>
-var K="accts-v1",T=[];try{T=JSON.parse(localStorage.getItem(K)||"null")||[]}catch(e){}
-if(!T.length)T=[{id:1,date:"2026-11-01",account:"Bank",type:"in",amount:50000,note:"Opening balance"},{id:2,date:"2026-11-03",account:"Cash",type:"in",amount:8000,note:"Counter sales"},{id:3,date:"2026-11-05",account:"Bank",type:"out",amount:12500,note:"Supplier payment"}];
+</main><script src="secure.js"></script><script>SEC.ready(function(){
+var K="accts-v1",T=[];T=SEC.load(K)||[];
 var $=function(i){return document.getElementById(i)},fmt=function(v){return v.toLocaleString(undefined,{maximumFractionDigits:2})},sg=function(t){return t.type=="in"?t.amount:-t.amount};
 function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}
-function save(){try{localStorage.setItem(K,JSON.stringify(T))}catch(e){}}
+function save(){SEC.save(K,T)}
 function draw(){var ac={},i=0,o=0;T.forEach(function(t){ac[t.account]=(ac[t.account]||0)+sg(t);t.type=="in"?i+=t.amount:o+=t.amount});
 var names=Object.keys(ac),max=Math.max.apply(null,names.map(function(n){return Math.abs(ac[n])}).concat([1]));
 $("k").innerHTML=[["Money in",fmt(i),"pos"],["Money out",fmt(o),"neg"],["Net balance",fmt(i-o),i-o<0?"neg":""],["Transactions",T.length,""]].map(function(x){return '<div class="c"><span>'+x[0]+'</span><b class="'+x[2]+'">'+x[1]+'</b></div>'}).join("");
@@ -40,14 +39,14 @@ $("r").onclick=function(e){var i=e.target.getAttribute("data-i");if(i){T=T.filte
 function dl(n,t,m){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:m}));a.download=n;a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000)}
 function csv(h,rows){var q=function(v){v=String(v==null?"":v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};return [h].concat(rows).map(function(r){return r.map(q).join(",")}).join("\n")}
 var today=new Date().toISOString().slice(0,10);
-function bad(){alert("Import failed: this is not a valid backup file for this dashboard.")}
-$("xj").onclick=function(){dl(NAME+"-backup-"+today+".json",JSON.stringify(DATA(),null,1),"application/json")};
-$("xc").onclick=function(){dl(NAME+"-"+today+".csv",CSVOUT(),"text/csv")};
+function bad(){alert("Import failed: wrong passphrase or not a valid backup file.")}
+$("xj").onclick=function(){SEC.exportBackup(NAME+"-backup-"+today+".enc.json",DATA())};
+$("xc").onclick=function(){if(confirm("CSV files are not encrypted. Keep the file safe. Continue?"))dl(NAME+"-"+today+".csv",CSVOUT(),"text/csv")};
 $("im").onclick=function(){$("fi").click()};
-$("fi").onchange=function(){var f=this.files[0],inp=this;if(!f)return;var r=new FileReader();r.onload=function(){var d;try{d=JSON.parse(r.result)}catch(e){return bad()}d=CLEAN(d);if(!d)return bad();if(confirm("Replace current data with "+d.length+" records from this file?")){APPLY(d);save();draw()}inp.value=""};r.readAsText(f)};
+$("fi").onchange=function(){var f=this.files[0],inp=this;if(!f)return;var r=new FileReader();r.onload=function(){SEC.readBackup(r.result).then(function(d){d=CLEAN(d);if(!d)return bad();if(confirm("Replace current data with "+d.length+" records from this file?")){APPLY(d);save();draw()}}).catch(bad);inp.value=""};r.readAsText(f)};
 
 var NAME="accounts";function DATA(){return T}
 function CSVOUT(){return csv(["Date","Account","Type","Amount","Note"],T.map(function(t){return [t.date,t.account,t.type=="in"?"Money in":"Money out",t.amount,t.note]}))}
 function CLEAN(d){if(!Array.isArray(d))return null;var o=[];for(var i=0;i<d.length;i++){var t=d[i];if(!t||typeof t.account!="string"||!isFinite(+t.amount)||(t.type!="in"&&t.type!="out"))return null;o.push({id:Date.now()+i,date:String(t.date||today),account:t.account,type:t.type,amount:+t.amount,note:String(t.note||"")})}return o}
 function APPLY(d){T=d}
-</script><script>if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(function(){})</script></body></html>
+});</script><script>if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(function(){})</script></body></html>

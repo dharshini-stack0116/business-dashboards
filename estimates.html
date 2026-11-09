@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&display=swap"><title>Cryol Accounts - Estimates</title><style>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Cryol Accounts - Estimates</title><style>
 :root{--bg:#eef2f6;--surf:#fff;--ink:#14202e;--mut:#5d6b7c;--line:#d5dde6;--acc:#1f5fbf;--pos:#12805c;--neg:#b8392f;--warn:#a96a00;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1620;--surf:#18222f;--ink:#e6edf5;--mut:#93a2b5;--line:#2a3748;--acc:#6aa3f0;--pos:#46c29a;--neg:#ef7d73;--warn:#e0a53a;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#0f1620;--surf:#18222f;--ink:#e6edf5;--mut:#93a2b5;--line:#2a3748;--acc:#6aa3f0;--pos:#46c29a;--neg:#ef7d73;--warn:#e0a53a;color-scheme:dark}
@@ -20,12 +20,11 @@ button{background:var(--acc);color:#fff;border-color:var(--acc);cursor:pointer}b
 <input type="number" id="q" placeholder="Qty" min="0" step="any" value="1" required><input type="number" id="r" placeholder="Rate" min="0" step="0.01" required>
 <select id="s"><option>Draft</option><option>Sent</option><option>Approved</option><option>Rejected</option></select><button>Add estimate</button></form></div></div>
 <div class="c"><h2>All estimates</h2><div class="w"><table><thead><tr><th>No.</th><th>Client</th><th>Item</th><th class="n">Qty</th><th class="n">Rate</th><th class="n">Total</th><th>Status</th><th></th></tr></thead><tbody id="t"></tbody></table></div></div>
-</main><script>
-var K="est-v1",E=[],S=["Draft","Sent","Approved","Rejected"];try{E=JSON.parse(localStorage.getItem(K)||"null")||[]}catch(e){}
-if(!E.length)E=[{id:1,c:"Sri Traders",i:"Shop signage",q:2,r:7500,s:"Approved"},{id:2,c:"Meena Interiors",i:"Wall panelling",q:40,r:850,s:"Sent"},{id:3,c:"Kumar & Sons",i:"Website revamp",q:1,r:45000,s:"Draft"}];
+</main><script src="secure.js"></script><script>SEC.ready(function(){
+var K="est-v1",E=[],S=["Draft","Sent","Approved","Rejected"];E=SEC.load(K)||[];
 var $=function(i){return document.getElementById(i)},fmt=function(v){return v.toLocaleString(undefined,{maximumFractionDigits:2})};
 function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}
-function save(){try{localStorage.setItem(K,JSON.stringify(E))}catch(e){}}
+function save(){SEC.save(K,E)}
 function draw(){var v={Draft:0,Sent:0,Approved:0,Rejected:0},tot=0;E.forEach(function(e){v[e.s]+=e.q*e.r;tot+=e.q*e.r});
 var dec=E.filter(function(e){return e.s=="Approved"||e.s=="Rejected"}).length,win=dec?Math.round(E.filter(function(e){return e.s=="Approved"}).length/dec*100)+"%":"–",max=Math.max(tot,1);
 $("k").innerHTML=[["Total estimated",fmt(tot)],["Approved",fmt(v.Approved)],["Awaiting decision",fmt(v.Draft+v.Sent)],["Approval rate",win]].map(function(x){return '<div class="c"><span>'+x[0]+'</span><b>'+x[1]+'</b></div>'}).join("");
@@ -39,14 +38,14 @@ $("t").onchange=function(ev){var i=ev.target.getAttribute("data-s");if(i){E.forE
 function dl(n,t,m){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:m}));a.download=n;a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000)}
 function csv(h,rows){var q=function(v){v=String(v==null?"":v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};return [h].concat(rows).map(function(r){return r.map(q).join(",")}).join("\n")}
 var today=new Date().toISOString().slice(0,10);
-function bad(){alert("Import failed: this is not a valid backup file for this dashboard.")}
-$("xj").onclick=function(){dl(NAME+"-backup-"+today+".json",JSON.stringify(DATA(),null,1),"application/json")};
-$("xc").onclick=function(){dl(NAME+"-"+today+".csv",CSVOUT(),"text/csv")};
+function bad(){alert("Import failed: wrong passphrase or not a valid backup file.")}
+$("xj").onclick=function(){SEC.exportBackup(NAME+"-backup-"+today+".enc.json",DATA())};
+$("xc").onclick=function(){if(confirm("CSV files are not encrypted. Keep the file safe. Continue?"))dl(NAME+"-"+today+".csv",CSVOUT(),"text/csv")};
 $("im").onclick=function(){$("fi").click()};
-$("fi").onchange=function(){var f=this.files[0],inp=this;if(!f)return;var r=new FileReader();r.onload=function(){var d;try{d=JSON.parse(r.result)}catch(e){return bad()}d=CLEAN(d);if(!d)return bad();if(confirm("Replace current data with "+d.length+" records from this file?")){APPLY(d);save();draw()}inp.value=""};r.readAsText(f)};
+$("fi").onchange=function(){var f=this.files[0],inp=this;if(!f)return;var r=new FileReader();r.onload=function(){SEC.readBackup(r.result).then(function(d){d=CLEAN(d);if(!d)return bad();if(confirm("Replace current data with "+d.length+" records from this file?")){APPLY(d);save();draw()}}).catch(bad);inp.value=""};r.readAsText(f)};
 
 var NAME="estimates";function DATA(){return E}
 function CSVOUT(){return csv(["No.","Client","Item","Qty","Rate","Total","Status"],E.map(function(e,n){return ["EST-"+String(n+1).padStart(3,"0"),e.c,e.i,e.q,e.r,e.q*e.r,e.s]}))}
 function CLEAN(d){if(!Array.isArray(d))return null;var o=[];for(var i=0;i<d.length;i++){var e=d[i];if(!e||typeof e.c!="string"||typeof e.i!="string"||!isFinite(+e.q)||!isFinite(+e.r)||S.indexOf(e.s)<0)return null;o.push({id:Date.now()+i,c:e.c,i:e.i,q:+e.q,r:+e.r,s:e.s})}return o}
 function APPLY(d){E=d}
-</script><script>if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(function(){})</script></body></html>
+});</script><script>if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(function(){})</script></body></html>

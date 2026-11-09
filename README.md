@@ -13,3 +13,6 @@ Open the live link in Chrome or Edge → click the Install icon in the address b
 
 ## Backup and restore
 Each dashboard has Export backup (JSON), Export CSV (for Excel or your accountant) and Import backup (restores a JSON backup; replaces current data).
+
+## Security
+Data is encrypted in the browser (AES-256-GCM, key from your passphrase via PBKDF2). Auto-locks after 5 minutes idle. Backups are encrypted with a passphrase you choose at export. A lost passphrase cannot be recovered.
